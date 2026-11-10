@@ -5,7 +5,7 @@
   "mcpServers": [],
   "webDomains": [],
   "routing": {
-    "frontDesk": null,
+    "frontDesk": "claude-haiku-5-5",
     "foreman": null,
     "builder": null,
     "reviewer": null,
@@ -30,5 +30,17 @@
     "**/migrations/**"
   ],
   "flagFiles": [],
-  "localListening": true
+  "localListening": true,
+  "pages": [],
+  "liveData": true,
+  "testCommand": "npm test",
+  "checks": {
+    "prepare": "npm ci"
+  },
+  "tiers": {
+    "pins": {
+      "mostCapable": "claude-haiku-5-5",
+      "midSized": "claude-haiku-5-5"
+    }
+  }
 }

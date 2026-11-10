@@ -1,3 +1,5 @@
 # .gitignore
 node_modules
 ledger.db*
+.env
+.env.*
