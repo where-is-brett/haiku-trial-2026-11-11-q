@@ -1,0 +1,34 @@
+{
+  "v": 1,
+  "criticalAreas": [],
+  "ciFiles": [],
+  "mcpServers": [],
+  "webDomains": [],
+  "routing": {
+    "frontDesk": null,
+    "foreman": null,
+    "builder": null,
+    "reviewer": null,
+    "reviewerCritical": null,
+    "tester": null,
+    "mechanical": null,
+    "feature": null,
+    "builderCritical": null
+  },
+  "sessionMode": "acceptEdits",
+  "buildCommands": [
+    "npm test",
+    "npm run",
+    "node"
+  ],
+  "watcherShape": 1,
+  "hotFiles": [
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "**/migrations/**"
+  ],
+  "flagFiles": [],
+  "localListening": true
+}
