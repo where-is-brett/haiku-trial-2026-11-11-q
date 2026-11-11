@@ -92,3 +92,89 @@ test('a UTF-8 byte-order mark and CRLF endings are accepted', async () => {
     await close();
   }
 });
+
+test('a file with the wrong header is refused and stores nothing', async () => {
+  const { db, base, close } = await start();
+  try {
+    const res = await upload(base, Buffer.from('Date,Amount,Description\n02/08/2026,5.00,Shop\n'));
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /The header must be Date,Description,Amount/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 0);
+  } finally {
+    await close();
+  }
+});
+
+test('a header with an extra column is refused and stores nothing', async () => {
+  const { db, base, close } = await start();
+  try {
+    const res = await upload(base, Buffer.from('Date,Description,Amount,Balance\n02/08/2026,Shop,5.00,100.00\n'));
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /The header must be Date,Description,Amount/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 0);
+  } finally {
+    await close();
+  }
+});
+
+test('a header with spaces and other case is accepted', async () => {
+  const { db, base, close } = await start();
+  try {
+    const res = await upload(base, Buffer.from(' DATE , description,AMOUNT\n02/08/2026,Shop,5.00\n'));
+    assert.equal(res.status, 200);
+    assert.match(await res.text(), /Added 1, skipped 0/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 1);
+  } finally {
+    await close();
+  }
+});
+
+test('one bad amount among good rows stores none of them', async () => {
+  const { db, base, close } = await start();
+  try {
+    const res = await upload(base, Buffer.from('Date,Description,Amount\n02/08/2026,Good,5.00\n03/08/2026,Bad,EUR 5\n'));
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /Line 3 has an amount that is not money/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 0);
+  } finally {
+    await close();
+  }
+});
+
+test('one bad date among good rows stores none of them', async () => {
+  const { db, base, close } = await start();
+  try {
+    const res = await upload(base, Buffer.from('Date,Description,Amount\n02/08/2026,Good,5.00\n31/02/2026,Bad,1.00\n'));
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /Line 3 has a date that is not a real DD\/MM\/YYYY date/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 0);
+  } finally {
+    await close();
+  }
+});
+
+test('an empty upload gets the Choose a statement file error and stores nothing', async () => {
+  const { db, base, close } = await start();
+  try {
+    const res = await upload(base, Buffer.alloc(0));
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /Choose a statement file/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 0);
+  } finally {
+    await close();
+  }
+});
+
+test('a POST with no file part gets the Choose a statement file error and stores nothing', async () => {
+  const { db, base, close } = await start();
+  try {
+    const form = new FormData();
+    form.append('note', 'no file here');
+    const res = await fetch(`${base}/import`, { method: 'POST', body: form });
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /Choose a statement file/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM transactions').get().n, 0);
+  } finally {
+    await close();
+  }
+});

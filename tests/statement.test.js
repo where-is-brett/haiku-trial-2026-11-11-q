@@ -47,3 +47,10 @@ test('an impossible date is refused and a leap day is accepted', () => {
   assert.throws(() => parseStatement('Date,Description,Amount\n31/02/2026,X,1.00\n'), StatementError);
   assert.equal(parseStatement('Date,Description,Amount\n29/02/2028,X,1.00\n')[0].date, '2028-02-29');
 });
+
+test('a date in year 0000 is refused', () => {
+  assert.throws(
+    () => parseStatement('Date,Description,Amount\n01/01/0000,Shop,5.00\n'),
+    /Line 2 has a date that is not a real DD\/MM\/YYYY date/,
+  );
+});
