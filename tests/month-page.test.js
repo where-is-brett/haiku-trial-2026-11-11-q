@@ -8,9 +8,17 @@ import { loadFlags, isOn } from '../src/lib/flags.js';
 async function start(flags = { 'month-page': true }) {
   const db = openLedger(':memory:');
   const server = createApp({ db, flags });
-  await new Promise((resolve) => server.listen(0, resolve));
-  const base = `http://localhost:${server.address().port}`;
-  return { db, server, base, close: () => new Promise((resolve) => server.close(resolve)) };
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  return {
+    db,
+    server,
+    base,
+    close: () => new Promise((resolve) => {
+      server.closeAllConnections();
+      server.close(resolve);
+    }),
+  };
 }
 
 function seed(db, rows) {
