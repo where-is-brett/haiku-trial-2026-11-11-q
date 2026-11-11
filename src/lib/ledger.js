@@ -9,3 +9,11 @@ export function openLedger(path) {
   );
   return db;
 }
+
+// Lists the YYYY-MM months that have transactions, newest first. Stored dates are YYYY-MM-DD.
+export function monthsOf(db) {
+  return db
+    .prepare('SELECT DISTINCT substr(date, 1, 7) AS month FROM transactions ORDER BY month DESC')
+    .all()
+    .map((row) => row.month);
+}
