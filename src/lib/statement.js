@@ -10,7 +10,7 @@ const DATE_SHAPE = /^\d{2}\/\d{2}\/\d{4}$/;
 // Plain digits, or digits with thousands separators, then an optional decimal part of 1 or 2 digits.
 const AMOUNT_SHAPE = /^(\d+|\d{1,3}(,\d{3})+)(\.\d{1,2})?$/;
 
-// Reads one amount field as signed cents. Brackets and a leading '-' both mean money going out.
+// Reads one amount field as signed cents. Brackets and a leading '-' both mean money coming back, stored as a negative amount.
 // The line is used only in the error message.
 export function parseAmountField(text, line) {
   const value = String(text).trim();
@@ -64,8 +64,12 @@ function isHeader(fields) {
 }
 
 // True when DD/MM/YYYY names a day that exists, so 31/02 and 29/02 of a non-leap year are refused.
+// Year 0000 is not a real year, so it is refused too.
 function isRealDay(text) {
   const [day, month, year] = text.split('/').map(Number);
+  if (year < 1) {
+    return false;
+  }
   const date = new Date(0);
   date.setUTCFullYear(year, month - 1, day);
   return date.getUTCFullYear() === year
