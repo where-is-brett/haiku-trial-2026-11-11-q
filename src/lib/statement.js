@@ -68,3 +68,40 @@ function isRealDay(text) {
     && date.getUTCMonth() === month - 1
     && date.getUTCDate() === day;
 }
+
+// Writes the rows of one upload in a single transaction. Each stored row with the same date,
+// description and cents cancels at most one row of the upload. The stored rows are read inside
+// the transaction, so they are the rows stored when the upload starts.
+export function importRows(db, rows) {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const stored = new Map();
+    for (const { date, description, cents } of db.prepare('SELECT date, description, cents FROM transactions').all()) {
+      const key = rowKey(date, description, cents);
+      stored.set(key, (stored.get(key) ?? 0) + 1);
+    }
+    const insert = db.prepare('INSERT INTO transactions (date, description, cents) VALUES (?, ?, ?)');
+    let added = 0;
+    let skipped = 0;
+    for (const { date, description, cents } of rows) {
+      const key = rowKey(date, description, cents);
+      const left = stored.get(key) ?? 0;
+      if (left > 0) {
+        stored.set(key, left - 1);
+        skipped += 1;
+      } else {
+        insert.run(date, description, cents);
+        added += 1;
+      }
+    }
+    db.exec('COMMIT');
+    return { added, skipped };
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+function rowKey(date, description, cents) {
+  return JSON.stringify([date, description, cents]);
+}
