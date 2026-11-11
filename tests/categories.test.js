@@ -5,7 +5,7 @@ import { CATEGORIES, SHOPS, categoryOf } from '../src/lib/categories.js';
 
 test('the categories are the eight keys in order', () => {
   assert.deepEqual(CATEGORIES.map((c) => c.key), [
-    'groceries', 'eating_out', 'transport', 'bills',
+    'groceries', 'dining', 'transport', 'bills',
     'shopping', 'health', 'income', 'other',
   ]);
 });
@@ -24,8 +24,8 @@ test('a description with no shop is other', () => {
   assert.equal(categoryOf('ATM WITHDRAWAL 0900'), 'other');
 });
 
-test('the Pasta, Pizza & Co name with its comma matches eating_out', () => {
-  assert.equal(categoryOf('Pasta, Pizza & Co Sydney'), 'eating_out');
+test('the Pasta, Pizza & Co name with its comma matches dining', () => {
+  assert.equal(categoryOf('Pasta, Pizza & Co Sydney'), 'dining');
   assert.equal(categoryOf('Pasta Pizza & Co Sydney'), 'other');
 });
 
