@@ -12,7 +12,7 @@ async function start(flags = { 'statement-import': true }) {
   const server = createApp({ db, flags });
   await new Promise((resolve) => server.listen(0, resolve));
   const base = `http://localhost:${server.address().port}`;
-  return { db, base, close: () => new Promise((resolve) => server.close(resolve)) };
+  return { db, server, base, close: () => new Promise((resolve) => server.close(resolve)) };
 }
 
 function upload(base, bytes) {
@@ -64,6 +64,22 @@ test('with the switch off, or missing, /import is not found', async () => {
     } finally {
       await close();
     }
+  }
+});
+
+test('an unexpected failure during import answers 500 and the server stays up', async () => {
+  const { db, server, base, close } = await start();
+  const logError = console.error;
+  console.error = () => {};
+  try {
+    db.close();
+    const res = await upload(base, sample);
+    assert.equal(res.status, 500);
+    assert.match(await res.text(), /Something went wrong/);
+    assert.equal(server.listening, true);
+  } finally {
+    console.error = logError;
+    await close();
   }
 });
 

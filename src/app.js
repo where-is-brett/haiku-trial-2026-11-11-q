@@ -14,25 +14,38 @@ const TOO_LARGE = 'This file is larger than 5 MB';
 // Builds the HTTP app over an open ledger. The server is returned, not listening.
 export function createApp({ db, flags }) {
   return http.createServer(async (req, res) => {
-    const url = new URL(req.url, 'http://localhost');
-    if (url.pathname === '/') {
-      const { n } = db.prepare('SELECT COUNT(*) AS n FROM transactions').get();
-      const body = n === 0 ? '<p>Nothing imported yet</p>' : `<p>${n} transactions imported</p>`;
-      sendHtml(res, 200, page(body));
+    try {
+      await route(req, res, db, flags);
+    } catch (error) {
+      // Nothing thrown here may reach Node as an unhandled rejection, which would end the process.
+      console.error(error);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+      }
+      res.end('Something went wrong');
+    }
+  });
+}
+
+async function route(req, res, db, flags) {
+  const url = new URL(req.url, 'http://localhost');
+  if (url.pathname === '/') {
+    const { n } = db.prepare('SELECT COUNT(*) AS n FROM transactions').get();
+    const body = n === 0 ? '<p>Nothing imported yet</p>' : `<p>${n} transactions imported</p>`;
+    sendHtml(res, 200, page(body));
+    return;
+  }
+  if (url.pathname === '/import' && isOn(flags, SWITCH)) {
+    if (req.method === 'GET') {
+      sendHtml(res, 200, importPage(''));
       return;
     }
-    if (url.pathname === '/import' && isOn(flags, SWITCH)) {
-      if (req.method === 'GET') {
-        sendHtml(res, 200, importPage(''));
-        return;
-      }
-      if (req.method === 'POST') {
-        await handleUpload(req, res, db);
-        return;
-      }
+    if (req.method === 'POST') {
+      await handleUpload(req, res, db);
+      return;
     }
-    notFound(res);
-  });
+  }
+  notFound(res);
 }
 
 async function handleUpload(req, res, db) {
