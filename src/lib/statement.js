@@ -39,6 +39,10 @@ export function parseStatement(text) {
     throw new StatementError('The header must be Date,Description,Amount');
   }
   return records.slice(1).map(({ line, fields }) => {
+    // A line break inside a quoted field is refused, so nothing from the record is stored.
+    if (fields.some((field) => field.includes('\n') || field.includes('\r'))) {
+      throw new StatementError(`Line ${line} has a line break inside a field`);
+    }
     if (fields.length !== 3) {
       throw new StatementError(`Line ${line} must have 3 fields`);
     }

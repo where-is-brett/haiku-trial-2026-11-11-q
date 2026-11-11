@@ -36,6 +36,13 @@ test('a wrong header is refused', () => {
   assert.throws(() => parseStatement('Date,Amount,Description\n'), /The header must be Date,Description,Amount/);
 });
 
+test('a description that spans two lines is refused, naming the line where the record starts', () => {
+  assert.throws(
+    () => parseStatement('Date,Description,Amount\n02/08/2026,"Pasta,102.29\n03/08/2026,Shop,5.00\n04/08/2026,Foo",7.00\n'),
+    (error) => error instanceof StatementError && error.message === 'Line 2 has a line break inside a field',
+  );
+});
+
 test('an impossible date is refused and a leap day is accepted', () => {
   assert.throws(() => parseStatement('Date,Description,Amount\n31/02/2026,X,1.00\n'), StatementError);
   assert.equal(parseStatement('Date,Description,Amount\n29/02/2028,X,1.00\n')[0].date, '2028-02-29');
