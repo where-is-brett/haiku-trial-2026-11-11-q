@@ -2,6 +2,7 @@
 import http from 'node:http';
 import { StatementError } from './lib/errors.js';
 import { isOn } from './lib/flags.js';
+import { monthsOf } from './lib/ledger.js';
 import { readStatementField } from './lib/multipart.js';
 import { importRows, parseStatement } from './lib/statement.js';
 
@@ -31,7 +32,12 @@ async function route(req, res, db, flags) {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/') {
     const { n } = db.prepare('SELECT COUNT(*) AS n FROM transactions').get();
-    const body = n === 0 ? '<p>Nothing imported yet</p>' : `<p>${n} transactions imported</p>`;
+    let body = n === 0 ? '<p>Nothing imported yet</p>' : `<p>${n} transactions imported</p>`;
+    if (isOn(flags, SWITCH)) {
+      // The months come from the ledger and are YYYY-MM, so they need no escaping.
+      const items = monthsOf(db).map((month) => `<li><a href="/month?m=${month}">${month}</a></li>`);
+      body += `\n<h2>Months</h2>\n<ul>\n${items.join('\n')}\n</ul>`;
+    }
     sendHtml(res, 200, page(body));
     return;
   }
