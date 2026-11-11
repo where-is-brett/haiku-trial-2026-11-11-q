@@ -41,3 +41,15 @@ test('a quoted field directly before a comma is still one field', () => {
 test('spaces after a closing quote, before a comma, are accepted', () => {
   assert.deepEqual(parseCsv('a,"b" ,c\n'), [{ line: 1, fields: ['a', 'b', 'c'] }]);
 });
+
+test('spaces before an opening quote are dropped and the quote still opens the field', () => {
+  assert.deepEqual(parseCsv('a, "b,c"\n'), [{ line: 1, fields: ['a', 'b,c'] }]);
+});
+
+test('a line break inside a quoted field after a leading space stays inside the field', () => {
+  assert.deepEqual(parseCsv('a, "b\nc",d\n'), [{ line: 1, fields: ['a', 'b\nc', 'd'] }]);
+});
+
+test('a quote in the middle of an unquoted field is literal', () => {
+  assert.deepEqual(parseCsv('a,b"c,d\n'), [{ line: 1, fields: ['a', 'b"c', 'd'] }]);
+});

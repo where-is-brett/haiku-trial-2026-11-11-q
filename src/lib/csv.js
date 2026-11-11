@@ -66,6 +66,16 @@ export function parseCsv(text) {
       line += 1;
       recordLine = line;
       recordStart = i;
+    } else if ((ch === ' ' || ch === '\t') && field === '') {
+      // Blanks at the start of a field that lead into an opening quote are dropped, so the quote opens.
+      let next = i;
+      while (text[next] === ' ' || text[next] === '\t') next += 1;
+      if (text[next] === '"') {
+        i = next;
+      } else {
+        field += ch;
+        i += 1;
+      }
     } else {
       field += ch;
       i += 1;
