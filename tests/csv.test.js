@@ -25,3 +25,19 @@ test('a quoted field may hold a line break', () => {
 test('an unclosed quote is a plain error', () => {
   assert.throws(() => parseCsv('a,"b\nc,d'), StatementError);
 });
+
+test('text after a closing quote is an error that names the record line', () => {
+  assert.throws(
+    () => parseCsv('a,"b,c\nd,"e",f\n'),
+    (err) =>
+      err instanceof StatementError && err.message === 'Line 1 has text after a closing quote',
+  );
+});
+
+test('a quoted field directly before a comma is still one field', () => {
+  assert.deepEqual(parseCsv('a,"b",c\n'), [{ line: 1, fields: ['a', 'b', 'c'] }]);
+});
+
+test('spaces after a closing quote, before a comma, are accepted', () => {
+  assert.deepEqual(parseCsv('a,"b" ,c\n'), [{ line: 1, fields: ['a', 'b', 'c'] }]);
+});

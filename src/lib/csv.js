@@ -46,6 +46,10 @@ export function parseCsv(text) {
         field += ch;
         i += 1;
       }
+    } else if (quoted && (ch === ' ' || ch === '\t')) {
+      i += 1;
+    } else if (quoted && ch !== ',' && ch !== '\r' && ch !== '\n') {
+      throw new StatementError(`Line ${recordLine} has text after a closing quote`);
     } else if (ch === '"' && field === '' && !quoted) {
       inQuotes = true;
       quoted = true;
