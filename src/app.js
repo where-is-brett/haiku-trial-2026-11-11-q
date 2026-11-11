@@ -2,10 +2,13 @@
 import http from 'node:http';
 import { StatementError } from './lib/errors.js';
 import { isOn } from './lib/flags.js';
+import { monthTotals, parseMonth, shiftMonth } from './lib/month.js';
+import { formatCents } from './lib/money.js';
 import { readStatementField } from './lib/multipart.js';
 import { importRows, parseStatement } from './lib/statement.js';
 
 const SWITCH = 'statement-import';
+const MONTH_SWITCH = 'month-page';
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 // The file plus room for the multipart headers around it.
 const MAX_BODY_BYTES = MAX_FILE_BYTES + 64 * 1024;
@@ -44,6 +47,10 @@ async function route(req, res, db, flags) {
       await handleUpload(req, res, db);
       return;
     }
+  }
+  if (url.pathname === '/month' && isOn(flags, MONTH_SWITCH) && req.method === 'GET') {
+    monthPage(res, db, url.searchParams.get('m'));
+    return;
   }
   notFound(res);
 }
@@ -92,6 +99,33 @@ ${message}
 <input type="file" name="statement">
 <button type="submit">Import</button>
 </form>`);
+}
+
+// The month text is checked first. A bad one gets the error page and is never echoed back.
+function monthPage(res, db, text) {
+  const ym = parseMonth(text);
+  if (ym === null) {
+    sendHtml(res, 400, page('<p>Choose a month as YYYY-MM</p>'));
+    return;
+  }
+  sendHtml(res, 200, monthBody(ym, monthTotals(db, ym)));
+}
+
+function monthBody(ym, { rows, grandCents }) {
+  const categoryRows = rows.map(({ key, label, cents }) => totalRow(key, label, cents));
+  const grandRow = totalRow('all', 'Total', grandCents);
+  return page(`<h2>${escapeHtml(ym)}</h2>
+<table>
+<tbody>
+${[...categoryRows, grandRow].join('\n')}
+</tbody>
+</table>
+<p><a href="/month?m=${shiftMonth(ym, -1)}">Previous month</a> <a href="/month?m=${shiftMonth(ym, 1)}">Next month</a></p>`);
+}
+
+function totalRow(key, label, cents) {
+  const amount = formatCents(cents);
+  return `<tr><th scope="row">${escapeHtml(label)}</th><td data-category="${key}" data-total="${amount}">${amount}</td></tr>`;
 }
 
 class BodyTooLarge extends Error {}
